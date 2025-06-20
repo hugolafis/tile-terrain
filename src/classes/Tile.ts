@@ -6,7 +6,7 @@ export interface TileParameters {
   depth: number;
 }
 
-const tileXResolution = 3;
+const tileXResolution = 4;
 
 // shouldn't be a mesh itself, but have an optional mesh property? (if it's a leaf)
 export class Tile extends THREE.Group {
@@ -37,8 +37,9 @@ export class Tile extends THREE.Group {
     this.add(this.mesh);
   }
 
-  subdivide() {
+  subdivide(maxDepth: number) {
     if (!this.isLeaf) return;
+    if (this.depth === maxDepth) return;
 
     const position = new THREE.Vector2();
     for (let y = 0; y < 2; y++) {
@@ -57,11 +58,13 @@ export class Tile extends THREE.Group {
       this.mesh.geometry.dispose();
       (this.mesh.material as THREE.Material).dispose();
       this.remove(this.mesh);
+      this.mesh = undefined;
     }
   }
 
   unify() {
     if (this.depth === 0) return;
+    if (this.isLeaf) return;
     if (!this.tiles.every(t => t.isLeaf)) return;
 
     this.tiles.forEach(t => {
@@ -73,14 +76,6 @@ export class Tile extends THREE.Group {
 
     this.tiles.length = 0;
   }
-
-  // update(t: number) {
-  //   if (t < 0.25) {
-  //     this.subdivide();
-  //   } else {
-  //     this.unify();
-  //   }
-  // }
 
   depthTraverse(callback: (Tile: Tile) => void) {
     this.tiles.forEach(t => t.depthTraverse(callback));

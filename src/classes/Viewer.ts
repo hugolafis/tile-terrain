@@ -67,7 +67,7 @@ export class Viewer {
     this.helper.position.x = x;
     this.helper.position.z = z;
 
-    this.quadTree.update({ x, y: 0, z });
+    this.quadTree.update(this.helper.position);
 
     this.renderer.render(this.scene, this.camera);
   };
