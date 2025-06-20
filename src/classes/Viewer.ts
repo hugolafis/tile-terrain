@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+import { QuadTree } from './QuadTree';
 
 export class Viewer {
   private camera: THREE.PerspectiveCamera;
@@ -8,6 +9,12 @@ export class Viewer {
 
   private readonly canvasSize: THREE.Vector2;
   private readonly renderSize: THREE.Vector2;
+
+  private quadTree: QuadTree;
+
+  private helper: THREE.Mesh;
+
+  private elapsed = 0;
 
   constructor(private readonly renderer: THREE.WebGLRenderer, private readonly canvas: HTMLCanvasElement) {
     this.canvasSize = new THREE.Vector2();
@@ -27,14 +34,19 @@ export class Viewer {
     this.scene.add(sun);
     this.scene.add(ambient);
 
-    const mesh = new THREE.Mesh(new THREE.BoxGeometry(), new THREE.MeshPhysicalMaterial());
-    this.scene.add(mesh);
+    this.helper = new THREE.Mesh(new THREE.BoxGeometry(), new THREE.MeshPhysicalMaterial({ wireframe: true }));
+    this.helper.scale.setScalar(0.1);
+    this.scene.add(this.helper);
 
-    this.loadTerrainData();
+    this.quadTree = new QuadTree(this.scene);
+
+    //this.loadTerrainData();
   }
 
   readonly update = (dt: number) => {
     this.controls.update();
+
+    this.elapsed += dt;
 
     // Do we need to resize the renderer?
     this.canvasSize.set(
@@ -48,6 +60,14 @@ export class Viewer {
       this.camera.aspect = this.renderSize.x / this.renderSize.y;
       this.camera.updateProjectionMatrix();
     }
+
+    const x = Math.sin(this.elapsed) * 0.25;
+    const z = Math.cos(this.elapsed) * 0.25;
+
+    this.helper.position.x = x;
+    this.helper.position.z = z;
+
+    this.quadTree.update({ x, y: 0, z });
 
     this.renderer.render(this.scene, this.camera);
   };
