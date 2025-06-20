@@ -6,7 +6,7 @@ export interface TileParameters {
   depth: number;
 }
 
-const tileXResolution = 4;
+const tileXResolution = 2;
 
 // shouldn't be a mesh itself, but have an optional mesh property? (if it's a leaf)
 export class Tile extends THREE.Group {
