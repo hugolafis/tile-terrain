@@ -53,18 +53,17 @@ export class Viewer {
   };
 
   private async loadTerrainData() {
-    const response = await fetch('./assets/terrain_height_512.data');
+    const response = await fetch('./assets/terrain_height.data');
     const arrayBuffer = await response.arrayBuffer();
     const pixelArray = new Uint8Array(arrayBuffer);
 
     const terrainHeight = 50;
-    const terrainSize = 512;
-    //const divisor = 4;
-    const vertexCount = terrainSize; // / divisor;
+    const imageResolution = 4096;
+    const divisor = 4;
+    const vertexCount = imageResolution / divisor;
     const divisions = Math.max(1, vertexCount - 1);
-    const geometry = new THREE.PlaneGeometry(terrainSize, terrainSize, divisions, divisions)
-      .rotateX(-Math.PI / 2)
-      .translate(terrainSize * 0.5, 0, terrainSize * 0.5);
+    const geometry = new THREE.PlaneGeometry(512, 512, divisions, divisions).rotateX(-Math.PI / 2);
+    //.translate(terrainSize * 0.5, 0, terrainSize * 0.5);
     const material = new THREE.MeshStandardMaterial();
 
     const positionAttrib = geometry.getAttribute('position');
@@ -76,8 +75,16 @@ export class Viewer {
         const posIndice = (y * vertexCount + x) * 3;
         vertex.fromArray(positionAttrib.array, posIndice);
 
-        const imageIndice = y * vertexCount + x;
-        vertex.y = (pixelArray[imageIndice] / 255) * terrainHeight;
+        //const imageIndice = Math.max(0, (y * vertexCount + x) * divisor - 1);
+        const rowOffset = y * divisor * vertexCount * divisor;
+        const columnOffset = Math.max(0, x * divisor - 1);
+
+        const imageX = x * divisor;
+        const imageY = y * divisor;
+        const imageIndex = imageY * imageResolution + imageX;
+
+        vertex.y = (pixelArray[rowOffset + columnOffset] / 255) * terrainHeight;
+        //vertex.y = vertex.x;
         vertex.toArray(positionAttrib.array, posIndice);
       }
     }
