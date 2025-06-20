@@ -10,7 +10,7 @@ export class Viewer {
   private readonly canvasSize: THREE.Vector2;
   private readonly renderSize: THREE.Vector2;
 
-  private quadTree: QuadTree;
+  private quadTree?: QuadTree;
 
   private helper: THREE.Mesh;
 
@@ -38,9 +38,22 @@ export class Viewer {
     this.helper.scale.setScalar(0.1);
     this.scene.add(this.helper);
 
-    this.quadTree = new QuadTree(this.scene);
+    //this.quadTree = new QuadTree(this.scene);
+
+    this.initQuadTree();
 
     //this.loadTerrainData();
+  }
+
+  private async initQuadTree() {
+    const response = await fetch('./assets/terrain_height.data');
+    const arrayBuffer = await response.arrayBuffer();
+    const pixelArray = new Uint8Array(arrayBuffer);
+
+    // todo don't hardcode
+    const imageResolution = 4096;
+
+    this.quadTree = new QuadTree(this.scene, pixelArray, imageResolution);
   }
 
   readonly update = (dt: number) => {
@@ -61,13 +74,15 @@ export class Viewer {
       this.camera.updateProjectionMatrix();
     }
 
-    const x = Math.sin(this.elapsed);
-    const z = Math.cos(this.elapsed) * 0.25;
+    const x = Math.sin(this.elapsed * 0.05) * 64;
+    //const z = Math.cos(this.elapsed) * 7.5;
 
     this.helper.position.x = x;
-    this.helper.position.z = z;
+    //this.helper.position.z = z;
 
-    this.quadTree.update(this.helper.position);
+    if (this.quadTree) {
+      this.quadTree.update(this.helper.position);
+    }
 
     this.renderer.render(this.scene, this.camera);
   };

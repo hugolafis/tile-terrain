@@ -19,10 +19,11 @@ export class QuadTree {
   //readonly heirarchy: Tile[];
   readonly root: Tile;
 
-  private readonly maxDepth = 4;
+  private readonly maxDepth = 2;
 
-  constructor(private readonly scene: THREE.Scene) {
-    this.root = new Tile({ position: new THREE.Vector3(), depth: 0 });
+  constructor(private readonly scene: THREE.Scene, dataBuffer: Uint8Array, dataXResolution: number) {
+    this.root = new Tile({ position: new THREE.Vector3(), depth: 0, dataBuffer, dataXResolution, index: 0 });
+    this.root.scale.setScalar(128);
     this.root.subdivide(this.maxDepth);
 
     // this.heirarchy.forEach(root => {
@@ -47,9 +48,11 @@ export class QuadTree {
       //position.copy(tile.position).applyMatrix4(tile.matrixWorld);
       //const distance = position.distanceTo(playerPos);
 
+      const size = box3.getSize(new THREE.Vector3()).length();
       const distance = box3.distanceToPoint(playerPos);
 
-      if (distance <= 0.125) {
+      const lodRatio = size / distance;
+      if (lodRatio > 5) {
         tile.subdivide(this.maxDepth);
       } else {
         tile.unify();

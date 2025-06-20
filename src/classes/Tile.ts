@@ -4,9 +4,13 @@ import { Resolver } from 'webpack';
 export interface TileParameters {
   position: THREE.Vector2Like;
   depth: number;
+  dataBuffer: Uint8Array;
+  dataXResolution: number;
+  index: number;
 }
 
 const tileXResolution = 2;
+const terrainHeight = 1; // move elsewhere
 
 const red = new THREE.Color(0xff0000);
 const green = new THREE.Color(0x00ff00);
@@ -17,12 +21,19 @@ export class Tile extends THREE.Group {
   private mesh?: THREE.Mesh;
 
   readonly depth: number;
+  private readonly dataBuffer: Uint8Array;
+  private readonly dataXResolution: number;
+  private readonly index: number;
 
   constructor(params: TileParameters) {
     super();
 
     this.tiles = [];
     this.depth = params.depth;
+
+    this.dataBuffer = params.dataBuffer;
+    this.dataXResolution = params.dataXResolution;
+    this.index = params.index;
 
     this.position.set(params.position.x, 0, params.position.y);
   }
@@ -32,8 +43,30 @@ export class Tile extends THREE.Group {
   }
 
   createMesh() {
-    const divisors = tileXResolution - 1;
-    const geometry = new THREE.PlaneGeometry(1, 1, divisors, divisors).rotateX(-Math.PI * 0.5);
+    const divisor = tileXResolution - 1;
+    const geometry = new THREE.PlaneGeometry(1, 1, divisor, divisor).rotateX(-Math.PI * 0.5);
+
+    const vertexCount = this.dataXResolution / divisor;
+
+    const positionAttrib = geometry.getAttribute('position');
+    const vertex = new THREE.Vector3();
+    for (let y = 0; y < tileXResolution; y++) {
+      for (let x = 0; x < tileXResolution; x++) {
+        const posIndice = (y * vertexCount + x) * 3;
+        vertex.fromArray(positionAttrib.array, posIndice);
+
+        const rowOffset = y * divisor * vertexCount * divisor;
+        const columnOffset = Math.max(0, x * divisor - 1);
+
+        const tileOffset = this.dataXResolution * 0.25 * this.index;
+
+        vertex.y = (this.dataBuffer[rowOffset + columnOffset + tileOffset] / 255) * terrainHeight;
+        vertex.toArray(positionAttrib.array, posIndice);
+      }
+    }
+
+    // the starting quad will be one of four
+    //const xOffset =
 
     const color = new THREE.Color().lerpColors(red, green, this.depth / 4);
     const material = new THREE.MeshBasicMaterial({ wireframe: true, color });
@@ -50,7 +83,13 @@ export class Tile extends THREE.Group {
     for (let y = 0; y < 2; y++) {
       for (let x = 0; x < 2; x++) {
         position.set(x, y).multiplyScalar(2).subScalar(1).multiplyScalar(0.25);
-        const child = new Tile({ position, depth: this.depth + 1 });
+        const child = new Tile({
+          position,
+          depth: this.depth + 1,
+          dataBuffer: this.dataBuffer,
+          dataXResolution: this.dataXResolution,
+          index: y * 2 + x,
+        });
         child.scale.setScalar(0.5);
         child.createMesh();
 
