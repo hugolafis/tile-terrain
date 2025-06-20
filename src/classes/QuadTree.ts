@@ -19,7 +19,7 @@ export class QuadTree {
   //readonly heirarchy: Tile[];
   readonly root: Tile;
 
-  private readonly maxDepth = 5;
+  private readonly maxDepth = 4;
 
   constructor(private readonly scene: THREE.Scene) {
     this.root = new Tile({ position: new THREE.Vector3(), depth: 0 });

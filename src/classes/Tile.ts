@@ -8,6 +8,9 @@ export interface TileParameters {
 
 const tileXResolution = 2;
 
+const red = new THREE.Color(0xff0000);
+const green = new THREE.Color(0x00ff00);
+
 // shouldn't be a mesh itself, but have an optional mesh property? (if it's a leaf)
 export class Tile extends THREE.Group {
   readonly tiles: Tile[];
@@ -31,7 +34,9 @@ export class Tile extends THREE.Group {
   createMesh() {
     const divisors = tileXResolution - 1;
     const geometry = new THREE.PlaneGeometry(1, 1, divisors, divisors).rotateX(-Math.PI * 0.5);
-    const material = new THREE.MeshBasicMaterial({ wireframe: true });
+
+    const color = new THREE.Color().lerpColors(red, green, this.depth / 4);
+    const material = new THREE.MeshBasicMaterial({ wireframe: true, color });
 
     this.mesh = new THREE.Mesh(geometry, material);
     this.add(this.mesh);
@@ -63,7 +68,7 @@ export class Tile extends THREE.Group {
   }
 
   unify() {
-    if (this.depth === 0) return;
+    //if (this.depth === 0) return;
     if (this.isLeaf) return;
     if (!this.tiles.every(t => t.isLeaf)) return;
 

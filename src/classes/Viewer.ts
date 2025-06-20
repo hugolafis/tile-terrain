@@ -61,7 +61,7 @@ export class Viewer {
       this.camera.updateProjectionMatrix();
     }
 
-    const x = Math.sin(this.elapsed) * 0.25;
+    const x = Math.sin(this.elapsed);
     const z = Math.cos(this.elapsed) * 0.25;
 
     this.helper.position.x = x;
