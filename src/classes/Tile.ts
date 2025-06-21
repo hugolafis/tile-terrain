@@ -9,7 +9,7 @@ export interface TileParameters {
   index: number;
 }
 
-const tileXResolution = 2;
+const tileXResolution = 64;
 const terrainHeight = 1; // move elsewhere
 
 const red = new THREE.Color(0xff0000);
@@ -46,22 +46,52 @@ export class Tile extends THREE.Group {
     const divisor = tileXResolution - 1;
     const geometry = new THREE.PlaneGeometry(1, 1, divisor, divisor).rotateX(-Math.PI * 0.5);
 
-    const vertexCount = this.dataXResolution / divisor;
+    const stride = this.dataXResolution / divisor; // todo not really vertex count at all...
 
     const positionAttrib = geometry.getAttribute('position');
     const vertex = new THREE.Vector3();
+
+    const tileOffset = this.dataXResolution * 0.5 * this.index; // todo tile depth
+    const scale = (this.dataXResolution - 1) / divisor;
+
     for (let y = 0; y < tileXResolution; y++) {
       for (let x = 0; x < tileXResolution; x++) {
+        const posIndice = (y * tileXResolution + x) * 3;
+        vertex.fromArray(positionAttrib.array, posIndice);
+
+        // const columnOffset = Math.max(0, x * divisor * stride - 1);
+        // const rowOffset = Math.max(0, y * divisor * stride * stride);
+
+        const columnOffset = Math.max(0, x * scale - 1);
+        const rowOffset = y * scale;
+
+        //vertex.y = Math.random();
+        //const imageIndice = rowOffset + columnOffset;
+        const imageIndice = rowOffset * this.dataXResolution + columnOffset;
+        vertex.y = (this.dataBuffer[imageIndice] / 255) * 0.25;
+
+        vertex.toArray(positionAttrib.array, posIndice);
+
+        /*
         const posIndice = (y * vertexCount + x) * 3;
         vertex.fromArray(positionAttrib.array, posIndice);
 
-        const rowOffset = y * divisor * vertexCount * divisor;
-        const columnOffset = Math.max(0, x * divisor - 1);
+        const rowOffset = y * this.dataXResolution;
+        const columnOffset = x;
 
-        const tileOffset = this.dataXResolution * 0.25 * this.index;
+        // const rowOffset = y * divisor * vertexCount * divisor;
+        // const columnOffset = Math.max(0, x * divisor) * vertexCount;
+        //const columnOffset = Math.max(0, x * divisor - 1);
 
-        vertex.y = (this.dataBuffer[rowOffset + columnOffset + tileOffset] / 255) * terrainHeight;
+        const indice = rowOffset + columnOffset; // + tileOffset;
+
+        if (indice > this.dataBuffer.length) {
+          throw new Error('Out of bounds indice');
+        }
+
+        vertex.y = (this.dataBuffer[indice] / 255) * terrainHeight;
         vertex.toArray(positionAttrib.array, posIndice);
+        */
       }
     }
 
@@ -83,6 +113,7 @@ export class Tile extends THREE.Group {
     for (let y = 0; y < 2; y++) {
       for (let x = 0; x < 2; x++) {
         position.set(x, y).multiplyScalar(2).subScalar(1).multiplyScalar(0.25);
+        console.log(y * 2 + x);
         const child = new Tile({
           position,
           depth: this.depth + 1,
