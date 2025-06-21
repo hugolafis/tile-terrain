@@ -46,10 +46,16 @@ export class Tile extends THREE.Group {
     const divisor = tileXResolution - 1;
     const geometry = new THREE.PlaneGeometry(1, 1, divisor, divisor).rotateX(-Math.PI * 0.5);
 
+    //const blockScale = 1.0 / Math.max(1, Math.pow(2, this.depth));
     const stride = this.dataXResolution / divisor; // todo not really vertex count at all...
+
+    const depthScale = 1.0 / Math.pow(2, this.depth);
+    console.log(depthScale);
 
     const positionAttrib = geometry.getAttribute('position');
     const vertex = new THREE.Vector3();
+
+    const scaledResolution = this.dataXResolution * depthScale;
 
     const tileOffset = this.dataXResolution * 0.5 * this.index; // todo tile depth
     const scale = (this.dataXResolution - 1) / divisor;
