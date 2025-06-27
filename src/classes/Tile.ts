@@ -52,16 +52,26 @@ export class Tile extends THREE.Group {
     const vertex = new THREE.Vector3();
 
     const stride = imageResolution / tileResolution;
+
+    const tileColumnIndex = this.index % 2;
+    const tileRowIndex = Math.floor(this.index / 2);
+
+    const tileColumnOffset = (imageResolution / 2) * tileColumnIndex;
+    const tileRowOffset = (imageResolution / 2) * tileRowIndex * imageResolution;
+
+    const scaling = 0.5; // todo variable on depth
+
     for (let y = 0; y < tileResolution; y++) {
       for (let x = 0; x < tileResolution; x++) {
         const posIndice = (y * tileResolution + x) * 3;
         vertex.fromArray(positionAttrib.array, posIndice);
 
-        const columnOffset = x * stride;
-        const rowOffset = y * stride * tileResolution * stride;
+        const columnOffset = x * stride * scaling;
+        const rowOffset = y * stride * tileResolution * stride * scaling;
 
-        const imageIndice = columnOffset + rowOffset;
-        console.log(columnOffset, rowOffset);
+        const imageIndice = columnOffset + tileColumnOffset + rowOffset + tileRowOffset;
+
+        //const imageIndice = columnOffset + rowOffset;
         vertex.y = (this.dataBuffer[imageIndice] / 255) * 0.25;
         vertex.toArray(positionAttrib.array, posIndice);
       }
@@ -151,7 +161,7 @@ export class Tile extends THREE.Group {
     for (let y = 0; y < 2; y++) {
       for (let x = 0; x < 2; x++) {
         position.set(x, y).multiplyScalar(2).subScalar(1).multiplyScalar(0.25);
-        console.log(y * 2 + x);
+        //console.log(y * 2 + x);
         const child = new Tile({
           position,
           depth: this.depth + 1,
