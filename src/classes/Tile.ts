@@ -172,3 +172,37 @@ export class Tile extends THREE.Group {
     this.remove(this.mesh);
   }
 }
+
+function lerp(a: number, b: number, t: number) {
+  return a * (1 - t) + b * t;
+}
+
+// todo texel centres... ?
+const invTexelSize = 1 / imageResolution;
+const invHalfTexelSize = invTexelSize * 0.5;
+const normalizationFactor = 1 / 255; // uint8 to float
+function bilinearSample(x: number, y: number, buffer: Uint8Array) {
+  const xLeft = Math.floor(x * imageResolution);
+  const xRight = Math.ceil(x * imageResolution);
+  const yUp = Math.floor(y * imageResolution * imageResolution - 1); // drop last row to keep in bounds
+  const yDown = Math.ceil(y * imageResolution * imageResolution - 1); // drop last row to keep in bounds
+
+  const xFrac = (x * imageResolution) % 1;
+  const yFrac = (y * imageResolution) % 1;
+
+  // clockwise, starting at top left of the quad
+  const texelAIndice = yUp + xLeft;
+  const texelBIndice = yUp + xRight;
+  const texelCIndice = yDown + xRight;
+  const texelDIndice = yDown + xLeft;
+
+  const texelA = buffer[texelAIndice] * normalizationFactor;
+  const texelB = buffer[texelBIndice] * normalizationFactor;
+  const texelC = buffer[texelCIndice] * normalizationFactor;
+  const texelD = buffer[texelDIndice] * normalizationFactor;
+
+  const horzA = lerp(texelA, texelB, xFrac - invHalfTexelSize);
+  const horzB = lerp(texelD, texelC, xFrac - invHalfTexelSize);
+
+  return lerp(horzA, horzB, yFrac - invHalfTexelSize);
+}
