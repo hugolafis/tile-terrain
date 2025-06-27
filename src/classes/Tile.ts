@@ -17,6 +17,8 @@ const terrainHeight = 1; // move elsewhere
 const red = new THREE.Color(0xff0000);
 const green = new THREE.Color(0x00ff00);
 
+// todo - the vertex share edges, but are effectively sampling different texels at the moment
+
 // shouldn't be a mesh itself, but have an optional mesh property? (if it's a leaf)
 export class Tile extends THREE.Group {
   readonly tiles: Tile[];
