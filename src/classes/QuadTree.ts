@@ -15,6 +15,8 @@ import { Tile } from './Tile';
 //   }
 // }
 
+const helper = new THREE.Vector3();
+
 export class QuadTree {
   //readonly heirarchy: Tile[];
   readonly root: Tile;
@@ -35,16 +37,6 @@ export class QuadTree {
     this.root.createMesh();
     this.root.subdivide(this.maxDepth);
 
-    // this.heirarchy.forEach(root => {
-    //   root.traverse(tile => {
-    //     if (tile instanceof Tile) {
-    //       if (tile.isLeaf) {
-    //         tile.createMesh();
-    //       }
-    //     }
-    //   });
-    // });
-
     this.scene.add(this.root);
   }
 
@@ -58,7 +50,9 @@ export class QuadTree {
       //const distance = position.distanceTo(playerPos);
 
       const size = box3.getSize(new THREE.Vector3()).length();
-      const distance = box3.distanceToPoint(playerPos);
+      box3.clampPoint(playerPos, helper);
+      helper.sub(playerPos);
+      const distance = Math.sqrt(helper.x * helper.x + helper.z * helper.z);
 
       const lodRatio = size / distance;
       if (lodRatio > 5) {

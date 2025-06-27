@@ -34,7 +34,7 @@ export class Viewer {
     this.scene.add(sun);
     this.scene.add(ambient);
 
-    this.helper = new THREE.Mesh(new THREE.BoxGeometry(), new THREE.MeshPhysicalMaterial({ wireframe: true }));
+    this.helper = new THREE.Mesh(new THREE.BoxGeometry(), new THREE.MeshBasicMaterial({ wireframe: true }));
     this.helper.scale.setScalar(2);
     this.scene.add(this.helper);
 

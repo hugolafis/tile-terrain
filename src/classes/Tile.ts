@@ -20,6 +20,7 @@ const red = new THREE.Color(0xff0000);
 const green = new THREE.Color(0x00ff00);
 
 // todo - the vertex share edges, but are effectively sampling different texels at the moment
+// todo implement the UV coordinates and interpolated sampling CPU side?
 
 // shouldn't be a mesh itself, but have an optional mesh property? (if it's a leaf)
 export class Tile extends THREE.Group {
@@ -90,8 +91,11 @@ export class Tile extends THREE.Group {
       }
     }
 
+    geometry.computeVertexNormals();
+
     const color = new THREE.Color().lerpColors(red, green, this.depth / 4);
     const material = new THREE.MeshBasicMaterial({ wireframe: true, color });
+    //const material = new THREE.MeshStandardMaterial();
 
     this.mesh = new THREE.Mesh(geometry, material);
     this.add(this.mesh);
