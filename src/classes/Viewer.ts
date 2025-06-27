@@ -23,7 +23,7 @@ export class Viewer {
     this.scene = new THREE.Scene();
 
     this.camera = new THREE.PerspectiveCamera(75, this.canvas.clientWidth / this.canvas.clientHeight);
-    this.camera.position.set(1, 1, 1);
+    this.camera.position.set(1, 1, 1).multiplyScalar(25);
 
     this.controls = new OrbitControls(this.camera, this.canvas);
     this.controls.target.set(0, 0, 0);

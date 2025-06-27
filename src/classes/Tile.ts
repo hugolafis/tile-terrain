@@ -9,7 +9,9 @@ export interface TileParameters {
   index: number;
 }
 
-const tileXResolution = 64;
+const imageResolution = 4096;
+
+const tileResolution = 64;
 const terrainHeight = 1; // move elsewhere
 
 const red = new THREE.Color(0xff0000);
@@ -43,66 +45,27 @@ export class Tile extends THREE.Group {
   }
 
   createMesh() {
-    const divisor = tileXResolution - 1;
-    const geometry = new THREE.PlaneGeometry(1, 1, divisor, divisor).rotateX(-Math.PI * 0.5);
-
-    //const blockScale = 1.0 / Math.max(1, Math.pow(2, this.depth));
-    const stride = this.dataXResolution / divisor; // todo not really vertex count at all...
-
-    const depthScale = 1.0 / Math.pow(2, this.depth);
-    console.log(depthScale);
+    const segments = tileResolution - 1;
+    const geometry = new THREE.PlaneGeometry(1, 1, segments, segments).rotateX(-Math.PI * 0.5);
 
     const positionAttrib = geometry.getAttribute('position');
     const vertex = new THREE.Vector3();
 
-    const scaledResolution = this.dataXResolution * depthScale;
-
-    const tileOffset = this.dataXResolution * 0.5 * this.index; // todo tile depth
-    const scale = (this.dataXResolution - 1) / divisor;
-
-    for (let y = 0; y < tileXResolution; y++) {
-      for (let x = 0; x < tileXResolution; x++) {
-        const posIndice = (y * tileXResolution + x) * 3;
+    const stride = imageResolution / tileResolution;
+    for (let y = 0; y < tileResolution; y++) {
+      for (let x = 0; x < tileResolution; x++) {
+        const posIndice = (y * tileResolution + x) * 3;
         vertex.fromArray(positionAttrib.array, posIndice);
 
-        // const columnOffset = Math.max(0, x * divisor * stride - 1);
-        // const rowOffset = Math.max(0, y * divisor * stride * stride);
+        const columnOffset = x * stride;
+        const rowOffset = y * stride * tileResolution * stride;
 
-        const columnOffset = Math.max(0, x * scale - 1);
-        const rowOffset = y * scale;
-
-        //vertex.y = Math.random();
-        //const imageIndice = rowOffset + columnOffset;
-        const imageIndice = rowOffset * this.dataXResolution + columnOffset;
+        const imageIndice = columnOffset + rowOffset;
+        console.log(columnOffset, rowOffset);
         vertex.y = (this.dataBuffer[imageIndice] / 255) * 0.25;
-
         vertex.toArray(positionAttrib.array, posIndice);
-
-        /*
-        const posIndice = (y * vertexCount + x) * 3;
-        vertex.fromArray(positionAttrib.array, posIndice);
-
-        const rowOffset = y * this.dataXResolution;
-        const columnOffset = x;
-
-        // const rowOffset = y * divisor * vertexCount * divisor;
-        // const columnOffset = Math.max(0, x * divisor) * vertexCount;
-        //const columnOffset = Math.max(0, x * divisor - 1);
-
-        const indice = rowOffset + columnOffset; // + tileOffset;
-
-        if (indice > this.dataBuffer.length) {
-          throw new Error('Out of bounds indice');
-        }
-
-        vertex.y = (this.dataBuffer[indice] / 255) * terrainHeight;
-        vertex.toArray(positionAttrib.array, posIndice);
-        */
       }
     }
-
-    // the starting quad will be one of four
-    //const xOffset =
 
     const color = new THREE.Color().lerpColors(red, green, this.depth / 4);
     const material = new THREE.MeshBasicMaterial({ wireframe: true, color });
@@ -110,6 +73,75 @@ export class Tile extends THREE.Group {
     this.mesh = new THREE.Mesh(geometry, material);
     this.add(this.mesh);
   }
+
+  // createMesh() {
+  //   const divisor = tileXResolution - 1;
+  //   const geometry = new THREE.PlaneGeometry(1, 1, divisor, divisor).rotateX(-Math.PI * 0.5);
+
+  //   //const blockScale = 1.0 / Math.max(1, Math.pow(2, this.depth));
+  //   const stride = this.dataXResolution / divisor; // todo not really vertex count at all...
+
+  //   const depthScale = 1.0 / Math.pow(2, this.depth);
+  //   console.log(depthScale);
+
+  //   const positionAttrib = geometry.getAttribute('position');
+  //   const vertex = new THREE.Vector3();
+
+  //   const scaledResolution = this.dataXResolution * depthScale;
+
+  //   const tileOffset = this.dataXResolution * 0.5 * this.index; // todo tile depth
+  //   const scale = (this.dataXResolution - 1) / divisor;
+
+  //   for (let y = 0; y < tileXResolution; y++) {
+  //     for (let x = 0; x < tileXResolution; x++) {
+  //       const posIndice = (y * tileXResolution + x) * 3;
+  //       vertex.fromArray(positionAttrib.array, posIndice);
+
+  //       // const columnOffset = Math.max(0, x * divisor * stride - 1);
+  //       // const rowOffset = Math.max(0, y * divisor * stride * stride);
+
+  //       const columnOffset = Math.max(0, x * scale - 1);
+  //       const rowOffset = y * scale;
+
+  //       //vertex.y = Math.random();
+  //       //const imageIndice = rowOffset + columnOffset;
+  //       const imageIndice = rowOffset * this.dataXResolution + columnOffset;
+  //       vertex.y = (this.dataBuffer[imageIndice] / 255) * 0.25;
+
+  //       vertex.toArray(positionAttrib.array, posIndice);
+
+  //       /*
+  //       const posIndice = (y * vertexCount + x) * 3;
+  //       vertex.fromArray(positionAttrib.array, posIndice);
+
+  //       const rowOffset = y * this.dataXResolution;
+  //       const columnOffset = x;
+
+  //       // const rowOffset = y * divisor * vertexCount * divisor;
+  //       // const columnOffset = Math.max(0, x * divisor) * vertexCount;
+  //       //const columnOffset = Math.max(0, x * divisor - 1);
+
+  //       const indice = rowOffset + columnOffset; // + tileOffset;
+
+  //       if (indice > this.dataBuffer.length) {
+  //         throw new Error('Out of bounds indice');
+  //       }
+
+  //       vertex.y = (this.dataBuffer[indice] / 255) * terrainHeight;
+  //       vertex.toArray(positionAttrib.array, posIndice);
+  //       */
+  //     }
+  //   }
+
+  //   // the starting quad will be one of four
+  //   //const xOffset =
+
+  //   const color = new THREE.Color().lerpColors(red, green, this.depth / 4);
+  //   const material = new THREE.MeshBasicMaterial({ wireframe: true, color });
+
+  //   this.mesh = new THREE.Mesh(geometry, material);
+  //   this.add(this.mesh);
+  // }
 
   subdivide(maxDepth: number) {
     if (!this.isLeaf) return;
