@@ -21,7 +21,7 @@ export class QuadTree {
   //readonly heirarchy: Tile[];
   readonly root: Tile;
 
-  private readonly maxDepth = 4;
+  private readonly maxDepth = 2;
 
   constructor(private readonly scene: THREE.Scene, dataBuffer: Uint8Array, dataXResolution: number) {
     this.root = new Tile({
@@ -35,7 +35,7 @@ export class QuadTree {
     });
     this.root.scale.setScalar(128);
     this.root.createMesh();
-    this.root.subdivide(this.maxDepth);
+    //this.root.subdivide(this.maxDepth);
 
     this.scene.add(this.root);
   }
@@ -56,7 +56,7 @@ export class QuadTree {
 
       const lodRatio = size / distance;
       if (lodRatio > 5) {
-        tile.subdivide(this.maxDepth);
+        //tile.subdivide(this.maxDepth);
       } else {
         tile.unify();
       }

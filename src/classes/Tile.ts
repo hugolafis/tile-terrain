@@ -61,6 +61,37 @@ export class Tile extends THREE.Group {
       .scale(invDepthDivisor, invDepthDivisor, 1)
       .rotateX(-Math.PI * 0.5);
 
+    //const indexAttrib = geometry.index!;
+    const uvAttrib = geometry.getAttribute("uv");
+    const positionAttrib = geometry.getAttribute("position");
+
+    const position = new THREE.Vector3();
+    const uv = new THREE.Vector2();
+    for (let i = 0; i < positionAttrib.count; i++) {
+      position.fromArray(positionAttrib.array, i * 3);
+      uv.fromArray(uvAttrib.array, i * 2);
+
+      position.y = bilinearSample(uv.x, 1.0 - uv.y, this.dataBuffer) * 0.1;
+
+      position.toArray(positionAttrib.array, i * 3);
+    }
+
+    geometry.computeVertexNormals();
+
+    const color = new THREE.Color().lerpColors(red, green, this.depth / 4);
+    const material = new THREE.MeshBasicMaterial({ wireframe: true, color });
+
+    this.mesh = new THREE.Mesh(geometry, material);
+    this.add(this.mesh);
+  }
+
+  createMeshOld() {
+    const segments = tileResolution - 1;
+    const invDepthDivisor = 1.0 / Math.pow(2, this.depth);
+    const geometry = new THREE.PlaneGeometry(1, 1, segments, segments)
+      .scale(invDepthDivisor, invDepthDivisor, 1)
+      .rotateX(-Math.PI * 0.5);
+
     const positionAttrib = geometry.getAttribute('position');
     const vertex = new THREE.Vector3();
 
@@ -181,20 +212,21 @@ function lerp(a: number, b: number, t: number) {
 const invTexelSize = 1 / imageResolution;
 const invHalfTexelSize = invTexelSize * 0.5;
 const normalizationFactor = 1 / 255; // uint8 to float
+const maxXIndice = imageResolution - 1;
 function bilinearSample(x: number, y: number, buffer: Uint8Array) {
-  const xLeft = Math.floor(x * imageResolution);
-  const xRight = Math.ceil(x * imageResolution);
-  const yUp = Math.floor(y * imageResolution * imageResolution - 1); // drop last row to keep in bounds
-  const yDown = Math.ceil(y * imageResolution * imageResolution - 1); // drop last row to keep in bounds
+  const xLeft = Math.floor(x * maxXIndice); // 0-4095 (for example)
+  const xRight = Math.ceil(x * maxXIndice);
+  const yUp = Math.floor(y * maxXIndice);
+  const yDown = Math.ceil(y * maxXIndice);
 
-  const xFrac = (x * imageResolution) % 1;
-  const yFrac = (y * imageResolution) % 1;
+  const xFrac = (x * maxXIndice) % 1;
+  const yFrac = (y * maxXIndice) % 1;
 
   // clockwise, starting at top left of the quad
-  const texelAIndice = yUp + xLeft;
-  const texelBIndice = yUp + xRight;
-  const texelCIndice = yDown + xRight;
-  const texelDIndice = yDown + xLeft;
+  const texelAIndice = yUp * imageResolution + xLeft;
+  const texelBIndice = yUp * imageResolution + xRight;
+  const texelCIndice = yDown * imageResolution + xRight;
+  const texelDIndice = yDown * imageResolution + xLeft;
 
   const texelA = buffer[texelAIndice] * normalizationFactor;
   const texelB = buffer[texelBIndice] * normalizationFactor;
