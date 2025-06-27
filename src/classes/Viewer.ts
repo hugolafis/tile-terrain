@@ -35,7 +35,7 @@ export class Viewer {
     this.scene.add(ambient);
 
     this.helper = new THREE.Mesh(new THREE.BoxGeometry(), new THREE.MeshPhysicalMaterial({ wireframe: true }));
-    this.helper.scale.setScalar(0.1);
+    this.helper.scale.setScalar(2);
     this.scene.add(this.helper);
 
     //this.quadTree = new QuadTree(this.scene);
@@ -74,11 +74,11 @@ export class Viewer {
       this.camera.updateProjectionMatrix();
     }
 
-    const x = Math.sin(this.elapsed * 0.05) * 64;
-    //const z = Math.cos(this.elapsed) * 7.5;
+    const x = Math.sin(this.elapsed * 0.2) * 64;
+    const z = Math.cos(this.elapsed * 0.2) * 64;
 
     this.helper.position.x = x;
-    //this.helper.position.z = z;
+    this.helper.position.z = z;
 
     if (this.quadTree) {
       this.quadTree.update(this.helper.position);

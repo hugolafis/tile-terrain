@@ -19,11 +19,20 @@ export class QuadTree {
   //readonly heirarchy: Tile[];
   readonly root: Tile;
 
-  private readonly maxDepth = 1;
+  private readonly maxDepth = 4;
 
   constructor(private readonly scene: THREE.Scene, dataBuffer: Uint8Array, dataXResolution: number) {
-    this.root = new Tile({ position: new THREE.Vector3(), depth: 0, dataBuffer, dataXResolution, index: 0 });
+    this.root = new Tile({
+      position: new THREE.Vector3(),
+      depth: 0,
+      dataBuffer,
+      dataXResolution,
+      index: 0,
+      parentColumnOffset: 0,
+      parentRowOffset: 0,
+    });
     this.root.scale.setScalar(128);
+    this.root.createMesh();
     this.root.subdivide(this.maxDepth);
 
     // this.heirarchy.forEach(root => {
