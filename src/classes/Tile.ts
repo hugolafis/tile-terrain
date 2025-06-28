@@ -6,9 +6,8 @@ export interface TileParameters {
   depth: number;
   dataBuffer: Uint8Array;
   dataXResolution: number;
-  index: number;
-  parentColumnOffset: number;
-  parentRowOffset: number;
+  coords: THREE.Vector2Like; 
+  parentUvTransform: THREE.Matrix3;
 }
 
 const imageResolution = 4096;
@@ -23,6 +22,8 @@ const green = new THREE.Color(0x00ff00);
 // todo implement the UV coordinates and interpolated sampling CPU side?
 
 // shouldn't be a mesh itself, but have an optional mesh property? (if it's a leaf)
+
+// todo fix the y flipping...
 export class Tile extends THREE.Group {
   readonly tiles: Tile[];
   private mesh?: THREE.Mesh;
@@ -30,10 +31,9 @@ export class Tile extends THREE.Group {
   readonly depth: number;
   private readonly dataBuffer: Uint8Array;
   private readonly dataXResolution: number;
-  private readonly index: number;
+  private readonly coords: THREE.Vector2Like;
 
-  private readonly parentColumnOffset: number;
-  private readonly parentRowOffset: number;
+  private readonly uvTransform: THREE.Matrix3;
 
   constructor(params: TileParameters) {
     super();
@@ -43,9 +43,15 @@ export class Tile extends THREE.Group {
 
     this.dataBuffer = params.dataBuffer;
     this.dataXResolution = params.dataXResolution;
-    this.index = params.index;
-    this.parentColumnOffset = params.parentColumnOffset;
-    this.parentRowOffset = params.parentRowOffset;
+    this.coords = params.coords;
+
+    this.uvTransform = new THREE.Matrix3();
+  
+    if (this.depth !== 0) {
+      this.uvTransform.setUvTransform(this.coords.x * 0.5, 0.5 - this.coords.y * 0.5, 0.5, 0.5, 0, 0, 0)
+    }
+
+    this.uvTransform.premultiply(params.parentUvTransform);
 
     this.position.set(params.position.x, 0, params.position.y);
   }
@@ -70,6 +76,7 @@ export class Tile extends THREE.Group {
     for (let i = 0; i < positionAttrib.count; i++) {
       position.fromArray(positionAttrib.array, i * 3);
       uv.fromArray(uvAttrib.array, i * 2);
+      uv.applyMatrix3(this.uvTransform);
 
       position.y = bilinearSample(uv.x, 1.0 - uv.y, this.dataBuffer) * 0.1;
 
@@ -79,69 +86,67 @@ export class Tile extends THREE.Group {
     geometry.computeVertexNormals();
 
     const color = new THREE.Color().lerpColors(red, green, this.depth / 4);
-    const material = new THREE.MeshBasicMaterial({ wireframe: true, color });
+    //const material = new THREE.MeshBasicMaterial({ wireframe: true, color });
+    const material = new THREE.MeshStandardMaterial({ wireframe: false, color });
 
     this.mesh = new THREE.Mesh(geometry, material);
     this.add(this.mesh);
   }
 
-  createMeshOld() {
-    const segments = tileResolution - 1;
-    const invDepthDivisor = 1.0 / Math.pow(2, this.depth);
-    const geometry = new THREE.PlaneGeometry(1, 1, segments, segments)
-      .scale(invDepthDivisor, invDepthDivisor, 1)
-      .rotateX(-Math.PI * 0.5);
+  // createMeshOld() {
+  //   const segments = tileResolution - 1;
+  //   const invDepthDivisor = 1.0 / Math.pow(2, this.depth);
+  //   const geometry = new THREE.PlaneGeometry(1, 1, segments, segments)
+  //     .scale(invDepthDivisor, invDepthDivisor, 1)
+  //     .rotateX(-Math.PI * 0.5);
 
-    const positionAttrib = geometry.getAttribute('position');
-    const vertex = new THREE.Vector3();
+  //   const positionAttrib = geometry.getAttribute('position');
+  //   const vertex = new THREE.Vector3();
 
-    const stride = imageResolution / tileResolution;
+  //   const stride = imageResolution / tileResolution;
 
-    const tileColumnIndex = this.index % 2;
-    const tileRowIndex = Math.floor(this.index / 2);
+  //   const tileColumnIndex = this.index % 2;
+  //   const tileRowIndex = Math.floor(this.index / 2);
 
-    const scaling = 0.5; // todo variable on depth
+  //   const scaling = 0.5; // todo variable on depth
 
-    const tileColumnOffset = imageResolution * invDepthDivisor * tileColumnIndex;
-    const tileRowOffset = imageResolution * invDepthDivisor * tileRowIndex * imageResolution;
+  //   const tileColumnOffset = imageResolution * invDepthDivisor * tileColumnIndex;
+  //   const tileRowOffset = imageResolution * invDepthDivisor * tileRowIndex * imageResolution;
 
-    for (let y = 0; y < tileResolution; y++) {
-      for (let x = 0; x < tileResolution; x++) {
-        const posIndice = (y * tileResolution + x) * 3;
-        vertex.fromArray(positionAttrib.array, posIndice);
+  //   for (let y = 0; y < tileResolution; y++) {
+  //     for (let x = 0; x < tileResolution; x++) {
+  //       const posIndice = (y * tileResolution + x) * 3;
+  //       vertex.fromArray(positionAttrib.array, posIndice);
 
-        const columnOffset = x * stride * invDepthDivisor;
-        const rowOffset = y * stride * tileResolution * stride * invDepthDivisor;
+  //       const columnOffset = x * stride * invDepthDivisor;
+  //       const rowOffset = y * stride * tileResolution * stride * invDepthDivisor;
 
-        const imageIndice =
-          columnOffset + tileColumnOffset + this.parentColumnOffset + rowOffset + tileRowOffset + this.parentRowOffset;
+  //       const imageIndice =
+  //         columnOffset + tileColumnOffset + this.parentColumnOffset + rowOffset + tileRowOffset + this.parentRowOffset;
 
-        //const imageIndice = columnOffset + rowOffset;
-        vertex.y = (this.dataBuffer[imageIndice] / 255) * 0.1;
-        vertex.toArray(positionAttrib.array, posIndice);
-      }
-    }
+  //       //const imageIndice = columnOffset + rowOffset;
+  //       vertex.y = (this.dataBuffer[imageIndice] / 255) * 0.1;
+  //       vertex.toArray(positionAttrib.array, posIndice);
+  //     }
+  //   }
 
-    geometry.computeVertexNormals();
+  //   geometry.computeVertexNormals();
 
-    const color = new THREE.Color().lerpColors(red, green, this.depth / 4);
-    const material = new THREE.MeshBasicMaterial({ wireframe: true, color });
-    //const material = new THREE.MeshStandardMaterial();
+  //   const color = new THREE.Color().lerpColors(red, green, this.depth / 4);
+  //   const material = new THREE.MeshBasicMaterial({ wireframe: true, color });
+  //   //const material = new THREE.MeshStandardMaterial();
 
-    this.mesh = new THREE.Mesh(geometry, material);
-    this.add(this.mesh);
-  }
+  //   this.mesh = new THREE.Mesh(geometry, material);
+  //   this.add(this.mesh);
+  // }
 
   subdivide(maxDepth: number) {
     if (!this.isLeaf) return;
     if (this.depth === maxDepth) return;
 
-    const tileColumnIndex = this.index % 2;
-    const tileRowIndex = Math.floor(this.index / 2);
-
     const invDepthDivisor = 1.0 / Math.pow(2, this.depth);
-    const tileColumnOffset = imageResolution * invDepthDivisor * tileColumnIndex;
-    const tileRowOffset = imageResolution * invDepthDivisor * tileRowIndex * imageResolution;
+    const tileColumnOffset = imageResolution * invDepthDivisor * this.coords.x;
+    const tileRowOffset = imageResolution * invDepthDivisor * this.coords.y * imageResolution;
 
     const invChildDepthDivisor = 1.0 / Math.pow(2, this.depth + 1);
     const position = new THREE.Vector2();
@@ -154,9 +159,8 @@ export class Tile extends THREE.Group {
           depth: this.depth + 1,
           dataBuffer: this.dataBuffer,
           dataXResolution: this.dataXResolution,
-          index: y * 2 + x,
-          parentColumnOffset: this.parentColumnOffset + tileColumnOffset,
-          parentRowOffset: this.parentRowOffset + tileRowOffset,
+          coords: { x, y },
+          parentUvTransform: this.uvTransform,
         });
         //child.scale.setScalar(0.5);
         child.createMesh();
@@ -222,11 +226,11 @@ function bilinearSample(x: number, y: number, buffer: Uint8Array) {
   const xFrac = (x * maxXIndice) % 1;
   const yFrac = (y * maxXIndice) % 1;
 
-  // clockwise, starting at top left of the quad
+  // left to right, in rows
   const texelAIndice = yUp * imageResolution + xLeft;
   const texelBIndice = yUp * imageResolution + xRight;
-  const texelCIndice = yDown * imageResolution + xRight;
-  const texelDIndice = yDown * imageResolution + xLeft;
+  const texelCIndice = yDown * imageResolution + xLeft;
+  const texelDIndice = yDown * imageResolution + xRight;
 
   const texelA = buffer[texelAIndice] * normalizationFactor;
   const texelB = buffer[texelBIndice] * normalizationFactor;
@@ -234,7 +238,7 @@ function bilinearSample(x: number, y: number, buffer: Uint8Array) {
   const texelD = buffer[texelDIndice] * normalizationFactor;
 
   const horzA = lerp(texelA, texelB, xFrac - invHalfTexelSize);
-  const horzB = lerp(texelD, texelC, xFrac - invHalfTexelSize);
+  const horzB = lerp(texelC, texelD, xFrac - invHalfTexelSize);
 
   return lerp(horzA, horzB, yFrac - invHalfTexelSize);
 }
