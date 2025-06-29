@@ -21,13 +21,14 @@ export class QuadTree {
   //readonly heirarchy: Tile[];
   readonly root: Tile;
 
-  private readonly maxDepth = 3;
+  private readonly maxDepth = 5; // todo this needs to be based on the resolution of the source buffer and tiles
 
-  constructor(private readonly scene: THREE.Scene, dataBuffer: Uint8Array, dataXResolution: number) {
+  constructor(private readonly scene: THREE.Scene, heightBuffer: Uint8Array, normalBuffer: Uint8Array, dataXResolution: number) {
     this.root = new Tile({
       position: new THREE.Vector3(),
       depth: 0,
-      dataBuffer,
+      heightBuffer,
+      normalBuffer,
       dataXResolution,
       coords: {x: 0, y: 0},
       parentUvTransform: new THREE.Matrix3().setUvTransform(0, 0, 1, 1, 0, 0, 0),

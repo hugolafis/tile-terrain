@@ -36,6 +36,8 @@ export class Viewer {
 
     this.helper = new THREE.Mesh(new THREE.BoxGeometry(), new THREE.MeshBasicMaterial({ wireframe: true }));
     this.helper.scale.setScalar(2);
+
+    this.helper.position.y = 15;
     this.scene.add(this.helper);
 
     //this.quadTree = new QuadTree(this.scene);
@@ -46,14 +48,15 @@ export class Viewer {
   }
 
   private async initQuadTree() {
-    const response = await fetch('./assets/terrain_height.data');
-    const arrayBuffer = await response.arrayBuffer();
-    const pixelArray = new Uint8Array(arrayBuffer);
+    const heightBuffer = await getBuffer('./assets/terrain_height.data');
+    const normalBuffer = await getBuffer('./assets/terrain_normal.data');
+
+    debugger;
 
     // todo don't hardcode
     const imageResolution = 4096;
 
-    this.quadTree = new QuadTree(this.scene, pixelArray, imageResolution);
+    this.quadTree = new QuadTree(this.scene, heightBuffer, normalBuffer, imageResolution);
   }
 
   readonly update = (dt: number) => {
@@ -74,11 +77,14 @@ export class Viewer {
       this.camera.updateProjectionMatrix();
     }
 
-    const x = Math.sin(this.elapsed * 0.2) * 64;
-    const z = Math.cos(this.elapsed * 0.2) * 64;
+    const timeScale = 0.125;
+    const x = Math.sin(this.elapsed * timeScale * 2) * 64;
+    const z = Math.sin(this.elapsed * timeScale) * 64;
 
-    this.helper.position.x = x;
-    this.helper.position.z = z;
+    //const cos = Math.cos(this.elapsed * 0.5); 
+
+    this.helper.position.x = x; // + cos;
+    this.helper.position.z = z; // * cos;
 
     if (this.quadTree) {
       this.quadTree.update(this.helper.position);
@@ -129,4 +135,12 @@ export class Viewer {
     const mesh = new THREE.Mesh(geometry, material);
     this.scene.add(mesh);
   }
+}
+
+async function getBuffer(uri: string): Promise<Uint8Array> {
+  const response = await fetch(uri);
+  const arrayBuffer = await response.arrayBuffer();
+  const pixelArray = new Uint8Array(arrayBuffer);
+
+  return pixelArray;
 }
